@@ -74,4 +74,30 @@ public class FlightService {
 
         return Optional.of(existingFlight);
     }
+
+   public Optional<Flight> updateAvailableSeats(String flightId, int availableSeats) {
+        Optional<Flight> existingFlightOptional = getFlightById(flightId);
+
+        if (existingFlightOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Flight existingFlight = existingFlightOptional.get();
+        existingFlight.setAvailableSeats(availableSeats);
+
+        return Optional.of(existingFlight);
+    }
+
+    public Optional<Flight> updatePrice(String flightId, double price) {
+        Optional<Flight> existingFlightOptional = getFlightById(flightId);
+
+        if (existingFlightOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Flight existingFlight = existingFlightOptional.get();
+        existingFlight.setPrice(price);
+
+        return Optional.of(existingFlight);
+    }
 }

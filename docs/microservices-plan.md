@@ -13,4 +13,4 @@ The AeroLink platform uses five microservices:
 - Handles baggage registration, baggage tracking, and baggage status updates.
 
 5. Notification Service
-- Handles user notifications for booking confirmation, baggage status changes, and flight updates.
+- Handles user notifications for booking confirmation, baggage status changes, and flight updates.   

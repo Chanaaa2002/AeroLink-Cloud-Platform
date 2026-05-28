@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/flights")
@@ -41,6 +42,41 @@ public class FlightController {
             @RequestBody Flight updatedFlight
     ) {
         return flightService.updateFlight(flightId, updatedFlight)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @PutMapping("/{flightId}/seats")
+    public ResponseEntity<Flight> updateAvailableSeats(
+            @PathVariable String flightId,
+            @RequestBody Map<String, Object> request
+    ) {
+        Object seatsValue = request.get("availableSeats");
+
+        if (seatsValue == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        int availableSeats = ((Number) seatsValue).intValue();
+
+        return flightService.updateAvailableSeats(flightId, availableSeats)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{flightId}/price")
+    public ResponseEntity<Flight> updatePrice(
+            @PathVariable String flightId,
+            @RequestBody Map<String, Object> request
+    ) {
+        Object priceValue = request.get("price");
+
+        if (priceValue == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        double price = ((Number) priceValue).doubleValue();
+
+        return flightService.updatePrice(flightId, price)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
