@@ -26,3 +26,15 @@ PUT /baggage/{baggageId}/status
 Notification Service APIs:
 GET /notifications/user/{userId}
 PUT /notifications/{notificationId}/read
+
+
+
+Swagger/OpenAPI Documentation:
+Flight Service Swagger UI:
+http://localhost:8080/swagger-ui/index.html
+
+OpenAPI JSON:
+http://localhost:8080/v3/api-docs
+
+Status:
+Completed
