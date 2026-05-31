@@ -19,12 +19,15 @@ DynamoDB Tables:
 - status
 
 3. BookingsTable
-- bookingId
+- bookingId: String partition key
 - userId
 - flightId
 - passengerName
-- status
-- bookingDate
+- seatCount
+- totalAmount
+- bookingStatus
+- paymentStatus
+- createdAt
 
 4. BaggageTable
 - baggageId
