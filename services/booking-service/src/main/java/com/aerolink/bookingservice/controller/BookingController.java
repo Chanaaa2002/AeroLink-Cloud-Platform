@@ -1,7 +1,9 @@
 package com.aerolink.bookingservice.controller;
 
+import com.aerolink.bookingservice.dto.CreateBookingRequest;
 import com.aerolink.bookingservice.model.Booking;
 import com.aerolink.bookingservice.service.BookingService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +32,8 @@ public class BookingController {
     }
 
     @PostMapping
-    public Booking createBooking(@RequestBody Booking booking) {
-        return bookingService.createBooking(booking);
+    public ResponseEntity<Booking> createBooking(@RequestBody CreateBookingRequest request) {
+        Booking createdBooking = bookingService.createBooking(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdBooking);
     }
 }
