@@ -7,8 +7,11 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -17,13 +20,16 @@ public class BaggageRepository {
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
+    private final String bookingIndexName;
 
     public BaggageRepository(
             DynamoDbClient dynamoDbClient,
-            @Value("${aws.dynamodb.baggage-table}") String tableName
+            @Value("${aws.dynamodb.baggage-table}") String tableName,
+            @Value("${aws.dynamodb.baggage-booking-index}") String bookingIndexName
     ) {
         this.dynamoDbClient = dynamoDbClient;
         this.tableName = tableName;
+        this.bookingIndexName = bookingIndexName;
     }
 
     public Baggage save(Baggage baggage) {
@@ -54,6 +60,34 @@ public class BaggageRepository {
         }
 
         return Optional.of(fromItem(item));
+    }
+
+    public List<Baggage> findByBookingId(String bookingId) {
+        Map<String, String> attributeNames = Map.of(
+                "#bookingId", "bookingId"
+        );
+
+        Map<String, AttributeValue> attributeValues = Map.of(
+                ":bookingId", AttributeValue.builder().s(bookingId).build()
+        );
+
+        List<Map<String, AttributeValue>> items = dynamoDbClient.query(
+                QueryRequest.builder()
+                        .tableName(tableName)
+                        .indexName(bookingIndexName)
+                        .keyConditionExpression("#bookingId = :bookingId")
+                        .expressionAttributeNames(attributeNames)
+                        .expressionAttributeValues(attributeValues)
+                        .build()
+        ).items();
+
+        List<Baggage> baggageList = new ArrayList<>();
+
+        for (Map<String, AttributeValue> item : items) {
+            baggageList.add(fromItem(item));
+        }
+
+        return baggageList;
     }
 
     private Map<String, AttributeValue> toItem(Baggage baggage) {
