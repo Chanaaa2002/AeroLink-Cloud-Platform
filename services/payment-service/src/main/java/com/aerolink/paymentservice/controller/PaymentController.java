@@ -55,14 +55,22 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/checkout/success")
+   @GetMapping("/checkout/success")
     public ResponseEntity<Map<String, String>> checkoutSuccess(
-            @RequestParam("session_id") String sessionId
+            @RequestParam(value = "session_id", required = false) String sessionId
     ) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return ResponseEntity.ok(Map.of(
+                    "message", "Stripe checkout returned successfully.",
+                    "paymentConfirmation", "Waiting for secure webhook confirmation.",
+                    "note", "No Stripe session ID was included in the redirect URL."
+            ));
+        }
+
         return ResponseEntity.ok(Map.of(
-                "message", "Stripe test checkout returned successfully.",
+                "message", "Stripe checkout returned successfully.",
                 "stripeSessionId", sessionId,
-                "nextStep", "Payment confirmation will be completed through a webhook."
+                "paymentConfirmation", "Payment status is confirmed through the secure webhook."
         ));
     }
 

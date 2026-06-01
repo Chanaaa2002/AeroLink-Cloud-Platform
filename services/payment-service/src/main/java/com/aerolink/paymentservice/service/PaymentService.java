@@ -58,7 +58,10 @@ public class PaymentService {
         payment.setBookingId(booking.getBookingId());
         payment.setAmount(booking.getTotalAmount());
         payment.setCurrency("LKR");
-        payment.setPaymentMethod("DUMMY");
+
+        // This payment will be completed through Stripe Sandbox Checkout.
+        payment.setPaymentMethod("STRIPE_CHECKOUT_TEST");
+
         payment.setPaymentStatus("PENDING");
         payment.setCreatedAt(LocalDateTime.now().toString());
         payment.setProcessedAt(null);
@@ -72,6 +75,7 @@ public class PaymentService {
                         "Payment not found: " + paymentId
                 ));
 
+        // Prevent a duplicate webhook from processing the same payment again.
         if ("SUCCESS".equals(payment.getPaymentStatus())) {
             return payment;
         }
@@ -82,6 +86,9 @@ public class PaymentService {
             );
         }
 
+        // Tell Booking Service that Stripe confirmed payment.
+        // Booking Service will mark the booking PAID / CONFIRMED
+        // and ask Flight Service to reduce seats.
         bookingClient.confirmPaidBooking(payment.getBookingId());
 
         payment.setPaymentStatus("SUCCESS");
