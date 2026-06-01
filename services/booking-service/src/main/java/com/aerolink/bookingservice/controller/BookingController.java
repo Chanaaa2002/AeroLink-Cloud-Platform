@@ -36,4 +36,12 @@ public class BookingController {
         Booking createdBooking = bookingService.createBooking(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdBooking);
     }
+
+    @PutMapping("/{bookingId}/payment-success")
+    public ResponseEntity<Booking> confirmPaidBooking(
+            @PathVariable String bookingId
+    ) {
+        Booking confirmedBooking = bookingService.confirmPaidBooking(bookingId);
+        return ResponseEntity.ok(confirmedBooking);
+    }
 }

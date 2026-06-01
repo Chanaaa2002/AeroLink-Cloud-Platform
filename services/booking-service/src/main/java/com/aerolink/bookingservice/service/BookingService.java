@@ -74,4 +74,43 @@ public class BookingService {
 
         return bookingRepository.save(booking);
     }
+
+    public Booking confirmPaidBooking(String bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Booking not found: " + bookingId
+                ));
+
+        if ("CONFIRMED".equals(booking.getBookingStatus())
+                && "PAID".equals(booking.getPaymentStatus())) {
+            return booking;
+        }
+
+        if (!"PENDING_PAYMENT".equals(booking.getBookingStatus())
+                || !"PENDING".equals(booking.getPaymentStatus())) {
+            throw new IllegalArgumentException(
+                    "Booking is not waiting for payment confirmation."
+            );
+        }
+
+        FlightResponse flight = flightClient.getFlightById(booking.getFlightId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Flight not found: " + booking.getFlightId()
+                ));
+
+        if (flight.getAvailableSeats() < booking.getSeatCount()) {
+            throw new IllegalArgumentException(
+                    "Not enough seats available to confirm this booking."
+            );
+        }
+
+        int remainingSeats = flight.getAvailableSeats() - booking.getSeatCount();
+
+        flightClient.updateAvailableSeats(booking.getFlightId(), remainingSeats);
+
+        booking.setBookingStatus("CONFIRMED");
+        booking.setPaymentStatus("PAID");
+
+        return bookingRepository.save(booking);
+    }
 }

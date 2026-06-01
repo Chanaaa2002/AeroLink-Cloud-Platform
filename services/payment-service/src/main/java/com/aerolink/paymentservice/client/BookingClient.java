@@ -20,6 +20,10 @@ public class BookingClient {
                 .build();
     }
 
+    /**
+     * Reads an existing booking from Booking Service.
+     * Used when creating a payment so Payment Service gets the real booking amount.
+     */
     public Optional<BookingResponse> getBookingById(String bookingId) {
         try {
             BookingResponse booking = restClient.get()
@@ -31,6 +35,30 @@ public class BookingClient {
 
         } catch (HttpClientErrorException.NotFound exception) {
             return Optional.empty();
+
+        } catch (ResourceAccessException exception) {
+            throw new IllegalStateException(
+                    "Booking Service is unavailable. Ensure it is running on port 8081."
+            );
+        }
+    }
+
+    /**
+     * Confirms a booking after Stripe payment succeeds.
+     * Booking Service will mark the booking as paid/confirmed
+     * and reduce the seats through Flight Service.
+     */
+    public BookingResponse confirmPaidBooking(String bookingId) {
+        try {
+            return restClient.put()
+                    .uri("/bookings/{bookingId}/payment-success", bookingId)
+                    .retrieve()
+                    .body(BookingResponse.class);
+
+        } catch (HttpClientErrorException exception) {
+            throw new IllegalStateException(
+                    "Booking confirmation failed: " + exception.getResponseBodyAsString()
+            );
 
         } catch (ResourceAccessException exception) {
             throw new IllegalStateException(

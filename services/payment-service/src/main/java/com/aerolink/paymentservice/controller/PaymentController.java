@@ -1,22 +1,30 @@
 package com.aerolink.paymentservice.controller;
 
+import com.aerolink.paymentservice.dto.CheckoutSessionResponse;
 import com.aerolink.paymentservice.dto.CreatePaymentRequest;
 import com.aerolink.paymentservice.model.Payment;
 import com.aerolink.paymentservice.service.PaymentService;
+import com.aerolink.paymentservice.service.StripeCheckoutService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/payments")
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final StripeCheckoutService stripeCheckoutService;
 
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(
+            PaymentService paymentService,
+            StripeCheckoutService stripeCheckoutService
+    ) {
         this.paymentService = paymentService;
+        this.stripeCheckoutService = stripeCheckoutService;
     }
 
     @GetMapping
@@ -35,5 +43,34 @@ public class PaymentController {
     public ResponseEntity<Payment> createPayment(@RequestBody CreatePaymentRequest request) {
         Payment createdPayment = paymentService.createPayment(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPayment);
+    }
+
+    @PostMapping("/{paymentId}/checkout-session")
+    public ResponseEntity<CheckoutSessionResponse> createCheckoutSession(
+            @PathVariable String paymentId
+    ) {
+        CheckoutSessionResponse response =
+                stripeCheckoutService.createCheckoutSession(paymentId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/checkout/success")
+    public ResponseEntity<Map<String, String>> checkoutSuccess(
+            @RequestParam("session_id") String sessionId
+    ) {
+        return ResponseEntity.ok(Map.of(
+                "message", "Stripe test checkout returned successfully.",
+                "stripeSessionId", sessionId,
+                "nextStep", "Payment confirmation will be completed through a webhook."
+        ));
+    }
+
+    @GetMapping("/checkout/cancel")
+    public ResponseEntity<Map<String, String>> checkoutCancelled() {
+        return ResponseEntity.ok(Map.of(
+                "message", "Stripe test checkout was cancelled.",
+                "paymentStatus", "PENDING"
+        ));
     }
 }

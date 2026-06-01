@@ -65,4 +65,28 @@ public class PaymentService {
 
         return paymentRepository.save(payment);
     }
+
+    public Payment completeStripePayment(String paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Payment not found: " + paymentId
+                ));
+
+        if ("SUCCESS".equals(payment.getPaymentStatus())) {
+            return payment;
+        }
+
+        if (!"PENDING".equals(payment.getPaymentStatus())) {
+            throw new IllegalArgumentException(
+                    "Payment is not pending and cannot be completed."
+            );
+        }
+
+        bookingClient.confirmPaidBooking(payment.getBookingId());
+
+        payment.setPaymentStatus("SUCCESS");
+        payment.setProcessedAt(LocalDateTime.now().toString());
+
+        return paymentRepository.save(payment);
+    }
 }

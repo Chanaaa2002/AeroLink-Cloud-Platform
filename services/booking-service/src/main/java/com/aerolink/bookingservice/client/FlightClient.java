@@ -8,6 +8,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.util.Optional;
+import org.springframework.http.MediaType;
+import java.util.Map;
 
 @Component
 public class FlightClient {
@@ -31,6 +33,25 @@ public class FlightClient {
 
         } catch (HttpClientErrorException.NotFound exception) {
             return Optional.empty();
+
+        } catch (ResourceAccessException exception) {
+            throw new IllegalStateException(
+                    "Flight Service is unavailable. Ensure it is running on port 8080."
+            );
+        }
+    }
+
+    public FlightResponse updateAvailableSeats(String flightId, int availableSeats) {
+        try {
+            return restClient.put()
+                    .uri("/flights/{flightId}/seats", flightId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("availableSeats", availableSeats))
+                    .retrieve()
+                    .body(FlightResponse.class);
+
+        } catch (HttpClientErrorException.NotFound exception) {
+            throw new IllegalArgumentException("Flight not found: " + flightId);
 
         } catch (ResourceAccessException exception) {
             throw new IllegalStateException(
