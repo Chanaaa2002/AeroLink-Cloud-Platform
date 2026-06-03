@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class BookingResponse {
 
     private String bookingId;
+    private String userId;
     private double totalAmount;
     private String bookingStatus;
     private String paymentStatus;
@@ -19,6 +20,14 @@ public class BookingResponse {
 
     public void setBookingId(String bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public double getTotalAmount() {

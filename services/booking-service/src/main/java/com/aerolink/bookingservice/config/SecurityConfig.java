@@ -1,4 +1,4 @@
-package com.aerolink.flightservice.config;
+package com.aerolink.bookingservice.config;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -29,7 +29,6 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Use Java HttpClient because it successfully reached Cognito in our JShell test.
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(20))
                 .build();
@@ -46,7 +45,6 @@ public class SecurityConfig {
                 .restOperations(restTemplate)
                 .build();
 
-        // Keep issuer validation: tokens must still come from your Cognito user pool.
         jwtDecoder.setJwtValidator(
                 JwtValidators.createDefaultWithIssuer(issuerUri)
         );
@@ -68,7 +66,6 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        // Keep health and Swagger available while testing locally.
                         .requestMatchers(
                                 "/health/**",
                                 "/swagger-ui/**",
@@ -77,27 +74,35 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
-                        // Passengers and staff can view flights.
-                        .requestMatchers(HttpMethod.GET, "/flights", "/flights/**")
-                        .hasAnyRole("PASSENGER", "STAFF")
+                        // Passengers can create their own booking.
+                        .requestMatchers(HttpMethod.POST, "/bookings")
+                        .hasRole("PASSENGER")
 
-                        // Only staff can create flights.
-                        .requestMatchers(HttpMethod.POST, "/flights")
+                        // Only staff can view the complete booking list.
+                        .requestMatchers(HttpMethod.GET, "/bookings")
                         .hasRole("STAFF")
+
                         /*
-                        * Backend-only endpoint used by Booking Service after trusted payment confirmation.
-                        * The controller verifies X-Internal-Service-Key before reducing seats.
+                        * Backend-only endpoint used by Payment Service before payment creation.
+                        * The controller verifies X-Internal-Service-Key.
                         */
-                        .requestMatchers(HttpMethod.PUT, "/flights/*/internal-seat-reduction")
+                        .requestMatchers(HttpMethod.GET, "/bookings/*/internal-payment-view")
                         .permitAll()
 
-                        // Only staff can perform normal flight update operations.
-                        .requestMatchers(HttpMethod.PUT, "/flights/**")
-                        .hasRole("STAFF")
+                        // Passengers may reach individual bookings, but ownership is checked in the controller.
+                        // Staff may view any individual booking.
+                        .requestMatchers(HttpMethod.GET, "/bookings/**")
+                        .hasAnyRole("PASSENGER", "STAFF")
 
+                        /*
+                        * This endpoint is called by Payment Service after Stripe webhook verification.
+                        * It does not require a Cognito user token, because the controller checks
+                        * the private X-Internal-Service-Key header instead.
+                        */
+                        .requestMatchers(HttpMethod.PUT, "/bookings/*/payment-success")
+                        .permitAll()
 
-
-                        .anyRequest().authenticated()
+                        .anyRequest().denyAll()
                 )
 
                 .oauth2ResourceServer(oauth2 -> oauth2

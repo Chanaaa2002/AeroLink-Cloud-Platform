@@ -31,7 +31,12 @@ public class BookingService {
         return bookingRepository.findById(bookingId);
     }
 
-    public Booking createBooking(CreateBookingRequest request) {
+    /*
+     * Creates a booking for an authenticated passenger.
+     * The passenger access token is forwarded only for the read-only
+     * flight availability check in Flight Service.
+     */
+    public Booking createBooking(CreateBookingRequest request, String accessToken) {
         if (request.getUserId() == null || request.getUserId().isBlank()) {
             throw new IllegalArgumentException("User ID is required.");
         }
@@ -48,7 +53,10 @@ public class BookingService {
             throw new IllegalArgumentException("Seat count must be greater than zero.");
         }
 
-        FlightResponse flight = flightClient.getFlightById(request.getFlightId())
+        FlightResponse flight = flightClient.getFlightById(
+                        request.getFlightId(),
+                        accessToken
+                )
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Flight not found: " + request.getFlightId()
                 ));
@@ -81,6 +89,10 @@ public class BookingService {
                         "Booking not found: " + bookingId
                 ));
 
+        /*
+        * If Stripe sends the same successful webhook again,
+        * do not reduce seats a second time.
+        */
         if ("CONFIRMED".equals(booking.getBookingStatus())
                 && "PAID".equals(booking.getPaymentStatus())) {
             return booking;
@@ -93,24 +105,20 @@ public class BookingService {
             );
         }
 
-        FlightResponse flight = flightClient.getFlightById(booking.getFlightId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Flight not found: " + booking.getFlightId()
-                ));
-
-        if (flight.getAvailableSeats() < booking.getSeatCount()) {
-            throw new IllegalArgumentException(
-                    "Not enough seats available to confirm this booking."
-            );
-        }
-
-        int remainingSeats = flight.getAvailableSeats() - booking.getSeatCount();
-
-        flightClient.updateAvailableSeats(booking.getFlightId(), remainingSeats);
+        /*
+        * Trusted backend action:
+        * Booking Service sends its private internal key to Flight Service.
+        * Flight Service checks the key and reduces the booked seat quantity.
+        */
+        flightClient.reduceSeatsAfterConfirmedPayment(
+                booking.getFlightId(),
+                booking.getSeatCount()
+        );
 
         booking.setBookingStatus("CONFIRMED");
         booking.setPaymentStatus("PAID");
 
         return bookingRepository.save(booking);
     }
+
 }

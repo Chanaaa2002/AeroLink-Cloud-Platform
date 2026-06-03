@@ -8,7 +8,9 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
 
@@ -32,11 +34,40 @@ public class StripeCheckoutService {
         this.cancelUrl = cancelUrl;
     }
 
-    public CheckoutSessionResponse createCheckoutSession(String paymentId) {
+    /*
+     * Creates a Stripe Checkout session only for the authenticated
+     * passenger who owns the payment record.
+     */
+    public CheckoutSessionResponse createCheckoutSession(
+            String paymentId,
+            String authenticatedUserId
+    ) {
+        if (authenticatedUserId == null || authenticatedUserId.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authenticated passenger identity is required."
+            );
+        }
+
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Payment not found: " + paymentId
                 ));
+
+        /*
+         * Ownership protection:
+         * A passenger cannot open checkout for another passenger's payment.
+         *
+         * Old payment records created before Cognito ownership security
+         * may have a null userId. Those records are intentionally blocked.
+         */
+        if (payment.getUserId() == null
+                || !authenticatedUserId.equals(payment.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to start checkout for this payment."
+            );
+        }
 
         if (!"PENDING".equals(payment.getPaymentStatus())) {
             throw new IllegalArgumentException(
@@ -44,6 +75,10 @@ public class StripeCheckoutService {
             );
         }
 
+        /*
+         * Use the amount stored by Payment Service, not an amount entered
+         * by the passenger in the browser or request body.
+         */
         long amountInMinorUnits = Math.round(payment.getAmount() * 100);
 
         SessionCreateParams params = SessionCreateParams.builder()
@@ -85,7 +120,8 @@ public class StripeCheckoutService {
 
         } catch (StripeException exception) {
             throw new IllegalStateException(
-                    "Stripe checkout session could not be created: " + exception.getMessage()
+                    "Stripe checkout session could not be created: "
+                            + exception.getMessage()
             );
         }
     }

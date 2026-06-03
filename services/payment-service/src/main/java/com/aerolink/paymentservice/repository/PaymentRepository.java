@@ -80,6 +80,14 @@ public class PaymentRepository {
         item.put("paymentStatus", AttributeValue.builder().s(payment.getPaymentStatus()).build());
         item.put("createdAt", AttributeValue.builder().s(payment.getCreatedAt()).build());
 
+        /*
+         * New secure payments store the Cognito-linked passenger owner.
+         * Older payment records may not contain this value.
+         */
+        if (payment.getUserId() != null && !payment.getUserId().isBlank()) {
+            item.put("userId", AttributeValue.builder().s(payment.getUserId()).build());
+        }
+
         if (payment.getProcessedAt() != null && !payment.getProcessedAt().isBlank()) {
             item.put("processedAt", AttributeValue.builder().s(payment.getProcessedAt()).build());
         }
@@ -92,7 +100,11 @@ public class PaymentRepository {
                 ? item.get("processedAt").s()
                 : null;
 
-        return new Payment(
+        String userId = item.containsKey("userId")
+                ? item.get("userId").s()
+                : null;
+
+        Payment payment = new Payment(
                 item.get("paymentId").s(),
                 item.get("bookingId").s(),
                 Double.parseDouble(item.get("amount").n()),
@@ -102,5 +114,9 @@ public class PaymentRepository {
                 item.get("createdAt").s(),
                 processedAt
         );
+
+        payment.setUserId(userId);
+
+        return payment;
     }
 }

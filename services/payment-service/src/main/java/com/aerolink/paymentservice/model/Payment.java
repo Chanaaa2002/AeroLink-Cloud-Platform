@@ -4,6 +4,13 @@ public class Payment {
 
     private String paymentId;
     private String bookingId;
+
+    /*
+     * Trusted Cognito passenger identity.
+     * New secure payments will store the owner of the related booking here.
+     */
+    private String userId;
+
     private double amount;
     private String currency;
     private String paymentMethod;
@@ -14,6 +21,10 @@ public class Payment {
     public Payment() {
     }
 
+    /*
+     * Existing constructor kept for compatibility with older DynamoDB payment records.
+     * The repository will set userId separately when that attribute exists.
+     */
     public Payment(String paymentId, String bookingId, double amount, String currency,
                    String paymentMethod, String paymentStatus, String createdAt,
                    String processedAt) {
@@ -41,6 +52,14 @@ public class Payment {
 
     public void setBookingId(String bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public double getAmount() {

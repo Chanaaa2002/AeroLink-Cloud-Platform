@@ -7,6 +7,8 @@ import com.aerolink.paymentservice.service.PaymentService;
 import com.aerolink.paymentservice.service.StripeCheckoutService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,30 +34,65 @@ public class PaymentController {
         return paymentService.getAllPayments();
     }
 
-    @GetMapping("/{paymentId}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable String paymentId) {
+   @GetMapping("/{paymentId}")
+    public ResponseEntity<Payment> getPaymentById(
+            @PathVariable String paymentId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
         return paymentService.getPaymentById(paymentId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(payment -> {
+                    List<String> groups = jwt.getClaimAsStringList("cognito:groups");
+
+                    boolean isStaff = groups != null && groups.contains("STAFF");
+                    boolean isPaymentOwner = payment.getUserId() != null
+                            && jwt.getSubject().equals(payment.getUserId());
+
+                    if (isStaff || isPaymentOwner) {
+                        return ResponseEntity.ok(payment);
+                    }
+
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .<Payment>build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Payment> createPayment(@RequestBody CreatePaymentRequest request) {
-        Payment createdPayment = paymentService.createPayment(request);
+    public ResponseEntity<Payment> createPayment(
+            @RequestBody CreatePaymentRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        /*
+         * The passenger identity comes from the verified Cognito access token.
+         * Payment Service checks that the booking belongs to this passenger.
+         */
+        Payment createdPayment = paymentService.createPayment(
+                request,
+                jwt.getSubject()
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPayment);
     }
 
     @PostMapping("/{paymentId}/checkout-session")
     public ResponseEntity<CheckoutSessionResponse> createCheckoutSession(
-            @PathVariable String paymentId
+            @PathVariable String paymentId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        /*
+         * Stripe Checkout can be created only for a payment that belongs
+         * to the authenticated Cognito passenger.
+         */
         CheckoutSessionResponse response =
-                stripeCheckoutService.createCheckoutSession(paymentId);
+                stripeCheckoutService.createCheckoutSession(
+                        paymentId,
+                        jwt.getSubject()
+                );
 
         return ResponseEntity.ok(response);
     }
 
-   @GetMapping("/checkout/success")
+    @GetMapping("/checkout/success")
     public ResponseEntity<Map<String, String>> checkoutSuccess(
             @RequestParam(value = "session_id", required = false) String sessionId
     ) {

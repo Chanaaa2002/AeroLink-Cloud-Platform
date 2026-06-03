@@ -13,21 +13,35 @@ import java.util.Optional;
 public class BookingClient {
 
     private final RestClient restClient;
+    private final String internalBookingKey;
 
-    public BookingClient(@Value("${services.booking.base-url}") String bookingServiceBaseUrl) {
+    public BookingClient(
+            @Value("${services.booking.base-url}") String bookingServiceBaseUrl,
+            @Value("${services.internal.booking-key}") String internalBookingKey
+    ) {
         this.restClient = RestClient.builder()
                 .baseUrl(bookingServiceBaseUrl)
                 .build();
+
+        if (internalBookingKey == null || internalBookingKey.isBlank()) {
+            throw new IllegalStateException(
+                    "PAYMENT_TO_BOOKING_INTERNAL_KEY is not configured."
+            );
+        }
+
+        this.internalBookingKey = internalBookingKey;
     }
 
     /**
-     * Reads an existing booking from Booking Service.
-     * Used when creating a payment so Payment Service gets the real booking amount.
+     * Backend-only booking lookup used before creating a payment.
+     * Payment Service sends its private internal key so Booking Service
+     * can safely return the real booking amount and payment status.
      */
     public Optional<BookingResponse> getBookingById(String bookingId) {
         try {
             BookingResponse booking = restClient.get()
-                    .uri("/bookings/{bookingId}", bookingId)
+                    .uri("/bookings/{bookingId}/internal-payment-view", bookingId)
+                    .header("X-Internal-Service-Key", internalBookingKey)
                     .retrieve()
                     .body(BookingResponse.class);
 
@@ -35,6 +49,11 @@ public class BookingClient {
 
         } catch (HttpClientErrorException.NotFound exception) {
             return Optional.empty();
+
+        } catch (HttpClientErrorException.Forbidden exception) {
+            throw new IllegalStateException(
+                    "Booking Service rejected the internal Payment Service key."
+            );
 
         } catch (ResourceAccessException exception) {
             throw new IllegalStateException(
@@ -44,16 +63,22 @@ public class BookingClient {
     }
 
     /**
-     * Confirms a booking after Stripe payment succeeds.
-     * Booking Service will mark the booking as paid/confirmed
-     * and reduce the seats through Flight Service.
+     * Backend-only booking confirmation used after Stripe webhook verification.
+     * Payment Service sends its private internal key so a passenger cannot
+     * bypass Stripe and confirm their own booking manually.
      */
     public BookingResponse confirmPaidBooking(String bookingId) {
         try {
             return restClient.put()
                     .uri("/bookings/{bookingId}/payment-success", bookingId)
+                    .header("X-Internal-Service-Key", internalBookingKey)
                     .retrieve()
                     .body(BookingResponse.class);
+
+        } catch (HttpClientErrorException.Forbidden exception) {
+            throw new IllegalStateException(
+                    "Booking Service rejected the internal Payment Service key."
+            );
 
         } catch (HttpClientErrorException exception) {
             throw new IllegalStateException(

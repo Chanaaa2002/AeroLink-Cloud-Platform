@@ -5,7 +5,9 @@ import com.aerolink.paymentservice.dto.BookingResponse;
 import com.aerolink.paymentservice.dto.CreatePaymentRequest;
 import com.aerolink.paymentservice.model.Payment;
 import com.aerolink.paymentservice.repository.PaymentRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,15 +33,44 @@ public class PaymentService {
         return paymentRepository.findById(paymentId);
     }
 
-    public Payment createPayment(CreatePaymentRequest request) {
+    /*
+     * Creates a payment only for the authenticated passenger's own booking.
+     * authenticatedUserId will come from the verified Cognito JWT token.
+     */
+    public Payment createPayment(
+            CreatePaymentRequest request,
+            String authenticatedUserId
+    ) {
+        if (authenticatedUserId == null || authenticatedUserId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Authenticated passenger identity is required."
+            );
+        }
+
         if (request.getBookingId() == null || request.getBookingId().isBlank()) {
             throw new IllegalArgumentException("Booking ID is required.");
         }
 
+        /*
+         * Payment Service reads the booking using the backend-only secure route.
+         * Booking Service returns the trusted Cognito-linked booking owner.
+         */
         BookingResponse booking = bookingClient.getBookingById(request.getBookingId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Booking not found: " + request.getBookingId()
                 ));
+
+        /*
+         * Ownership protection:
+         * A passenger cannot create a payment for another passenger's booking.
+         */
+        if (booking.getUserId() == null
+                || !authenticatedUserId.equals(booking.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to create a payment for this booking."
+            );
+        }
 
         if (!"PENDING_PAYMENT".equals(booking.getBookingStatus())) {
             throw new IllegalArgumentException(
@@ -56,12 +87,15 @@ public class PaymentService {
         Payment payment = new Payment();
         payment.setPaymentId("PAY-" + UUID.randomUUID());
         payment.setBookingId(booking.getBookingId());
+
+        /*
+         * Store the authenticated Cognito passenger identity in PaymentsTable.
+         */
+        payment.setUserId(authenticatedUserId);
+
         payment.setAmount(booking.getTotalAmount());
         payment.setCurrency("LKR");
-
-        // This payment will be completed through Stripe Sandbox Checkout.
         payment.setPaymentMethod("STRIPE_CHECKOUT_TEST");
-
         payment.setPaymentStatus("PENDING");
         payment.setCreatedAt(LocalDateTime.now().toString());
         payment.setProcessedAt(null);
@@ -75,7 +109,10 @@ public class PaymentService {
                         "Payment not found: " + paymentId
                 ));
 
-        // Prevent a duplicate webhook from processing the same payment again.
+        /*
+         * Prevent duplicate Stripe webhook delivery from processing
+         * the same successful payment and reducing seats again.
+         */
         if ("SUCCESS".equals(payment.getPaymentStatus())) {
             return payment;
         }
@@ -86,9 +123,11 @@ public class PaymentService {
             );
         }
 
-        // Tell Booking Service that Stripe confirmed payment.
-        // Booking Service will mark the booking PAID / CONFIRMED
-        // and ask Flight Service to reduce seats.
+        /*
+         * Trusted backend flow:
+         * Payment Service sends its private internal key to Booking Service.
+         * Booking Service then confirms the booking and securely reduces seats.
+         */
         bookingClient.confirmPaidBooking(payment.getBookingId());
 
         payment.setPaymentStatus("SUCCESS");
