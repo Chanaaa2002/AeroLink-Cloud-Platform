@@ -4,6 +4,7 @@ import com.aerolink.baggageservice.client.BookingClient;
 import com.aerolink.baggageservice.dto.BookingResponse;
 import com.aerolink.baggageservice.dto.CreateBaggageRequest;
 import com.aerolink.baggageservice.dto.UpdateBaggageStatusRequest;
+import com.aerolink.baggageservice.event.BaggageEventPublisher;
 import com.aerolink.baggageservice.model.Baggage;
 import com.aerolink.baggageservice.repository.BaggageRepository;
 import org.springframework.http.HttpStatus;
@@ -31,13 +32,16 @@ public class BaggageService {
 
     private final BaggageRepository baggageRepository;
     private final BookingClient bookingClient;
+    private final BaggageEventPublisher baggageEventPublisher;
 
     public BaggageService(
             BaggageRepository baggageRepository,
-            BookingClient bookingClient
+            BookingClient bookingClient,
+            BaggageEventPublisher baggageEventPublisher
     ) {
         this.baggageRepository = baggageRepository;
         this.bookingClient = bookingClient;
+        this.baggageEventPublisher = baggageEventPublisher;
     }
 
     public Optional<Baggage> getBaggageById(String baggageId) {
@@ -146,6 +150,11 @@ public class BaggageService {
         return baggageRepository.save(baggage);
     }
 
+    /*
+     * STAFF-only baggage status update flow.
+     * After the baggage update is stored successfully, a BaggageStatusUpdated
+     * event is published to EventBridge for passenger notification processing.
+     */
     public Baggage updateBaggageStatus(
             String baggageId,
             UpdateBaggageStatusRequest request
@@ -168,6 +177,10 @@ public class BaggageService {
             );
         }
 
+        /*
+         * Do not create a duplicate notification when staff submits
+         * the same current status again.
+         */
         if (currentStatus.equals(newStatus)) {
             return baggage;
         }
@@ -189,6 +202,14 @@ public class BaggageService {
 
         baggage.setLastUpdated(LocalDateTime.now().toString());
 
-        return baggageRepository.save(baggage);
+        /*
+         * Store the operational baggage update first.
+         * Only after it is saved do we publish the event for notifications.
+         */
+        Baggage updatedBaggage = baggageRepository.save(baggage);
+
+        baggageEventPublisher.publishStatusUpdated(updatedBaggage);
+
+        return updatedBaggage;
     }
 }
