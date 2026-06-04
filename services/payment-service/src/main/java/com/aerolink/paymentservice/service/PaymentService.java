@@ -3,6 +3,7 @@ package com.aerolink.paymentservice.service;
 import com.aerolink.paymentservice.client.BookingClient;
 import com.aerolink.paymentservice.dto.BookingResponse;
 import com.aerolink.paymentservice.dto.CreatePaymentRequest;
+import com.aerolink.paymentservice.event.PaymentEventPublisher;
 import com.aerolink.paymentservice.model.Payment;
 import com.aerolink.paymentservice.repository.PaymentRepository;
 import org.springframework.http.HttpStatus;
@@ -19,10 +20,16 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingClient bookingClient;
+    private final PaymentEventPublisher paymentEventPublisher;
 
-    public PaymentService(PaymentRepository paymentRepository, BookingClient bookingClient) {
+    public PaymentService(
+            PaymentRepository paymentRepository,
+            BookingClient bookingClient,
+            PaymentEventPublisher paymentEventPublisher
+    ) {
         this.paymentRepository = paymentRepository;
         this.bookingClient = bookingClient;
+        this.paymentEventPublisher = paymentEventPublisher;
     }
 
     public List<Payment> getAllPayments() {
@@ -35,7 +42,7 @@ public class PaymentService {
 
     /*
      * Creates a payment only for the authenticated passenger's own booking.
-     * authenticatedUserId will come from the verified Cognito JWT token.
+     * authenticatedUserId comes from the verified Cognito JWT token.
      */
     public Payment createPayment(
             CreatePaymentRequest request,
@@ -87,12 +94,7 @@ public class PaymentService {
         Payment payment = new Payment();
         payment.setPaymentId("PAY-" + UUID.randomUUID());
         payment.setBookingId(booking.getBookingId());
-
-        /*
-         * Store the authenticated Cognito passenger identity in PaymentsTable.
-         */
         payment.setUserId(authenticatedUserId);
-
         payment.setAmount(booking.getTotalAmount());
         payment.setCurrency("LKR");
         payment.setPaymentMethod("STRIPE_CHECKOUT_TEST");
@@ -103,6 +105,12 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
+    /*
+     * Called only after Stripe webhook verification confirms a paid checkout.
+     *
+     * After payment and booking status are completed successfully, the service
+     * publishes PaymentSucceeded so the notification Lambda can create an alert.
+     */
     public Payment completeStripePayment(String paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -110,8 +118,9 @@ public class PaymentService {
                 ));
 
         /*
-         * Prevent duplicate Stripe webhook delivery from processing
-         * the same successful payment and reducing seats again.
+         * Stripe can deliver the same webhook more than once.
+         * Returning the already completed payment prevents duplicate booking
+         * confirmation and duplicate PaymentSucceeded notifications.
          */
         if ("SUCCESS".equals(payment.getPaymentStatus())) {
             return payment;
@@ -126,13 +135,20 @@ public class PaymentService {
         /*
          * Trusted backend flow:
          * Payment Service sends its private internal key to Booking Service.
-         * Booking Service then confirms the booking and securely reduces seats.
+         * Booking Service confirms the booking and securely reduces seats.
          */
         bookingClient.confirmPaidBooking(payment.getBookingId());
 
         payment.setPaymentStatus("SUCCESS");
         payment.setProcessedAt(LocalDateTime.now().toString());
 
-        return paymentRepository.save(payment);
+        Payment completedPayment = paymentRepository.save(payment);
+
+        /*
+         * Publish only after the successful payment state has been persisted.
+         */
+        paymentEventPublisher.publishPaymentSucceeded(completedPayment);
+
+        return completedPayment;
     }
 }
