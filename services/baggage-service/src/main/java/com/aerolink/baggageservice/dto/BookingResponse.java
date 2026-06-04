@@ -6,6 +6,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class BookingResponse {
 
     private String bookingId;
+
+    /*
+     * Trusted Cognito passenger identity stored in the Booking record.
+     * Baggage Service will use this to link baggage to the booking owner.
+     */
+    private String userId;
+
     private String bookingStatus;
     private String paymentStatus;
 
@@ -18,6 +25,14 @@ public class BookingResponse {
 
     public void setBookingId(String bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getBookingStatus() {

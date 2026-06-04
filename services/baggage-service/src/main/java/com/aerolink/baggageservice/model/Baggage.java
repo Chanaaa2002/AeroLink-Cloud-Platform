@@ -4,6 +4,13 @@ public class Baggage {
 
     private String baggageId;
     private String bookingId;
+
+    /*
+     * Trusted Cognito passenger identity copied from the confirmed booking.
+     * New secure baggage records will use this for passenger ownership checks.
+     */
+    private String userId;
+
     private String tagNumber;
     private String status;
     private String currentLocation;
@@ -12,6 +19,10 @@ public class Baggage {
     public Baggage() {
     }
 
+    /*
+     * Existing constructor kept for compatibility with older DynamoDB baggage records.
+     * The repository will set userId separately when that attribute exists.
+     */
     public Baggage(String baggageId, String bookingId, String tagNumber,
                    String status, String currentLocation, String lastUpdated) {
         this.baggageId = baggageId;
@@ -36,6 +47,14 @@ public class Baggage {
 
     public void setBookingId(String bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getTagNumber() {
@@ -68,5 +87,5 @@ public class Baggage {
 
     public void setLastUpdated(String lastUpdated) {
         this.lastUpdated = lastUpdated;
-    }
+     }
 }

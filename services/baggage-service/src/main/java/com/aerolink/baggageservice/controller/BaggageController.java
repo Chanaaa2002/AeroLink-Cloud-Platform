@@ -6,6 +6,8 @@ import com.aerolink.baggageservice.model.Baggage;
 import com.aerolink.baggageservice.service.BaggageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,28 +24,81 @@ public class BaggageController {
 
     @PostMapping
     public ResponseEntity<Baggage> createBaggage(
-            @RequestBody CreateBaggageRequest request
+            @RequestBody CreateBaggageRequest request,
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        Baggage createdBaggage = baggageService.createBaggage(request);
+        /*
+         * Only STAFF can reach this endpoint through SecurityConfig.
+         * The verified staff access token is forwarded to Booking Service
+         * so the confirmed and paid booking can be checked securely.
+         */
+        Baggage createdBaggage = baggageService.createBaggage(
+                request,
+                jwt.getTokenValue()
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(createdBaggage);
     }
 
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<List<Baggage>> getBaggageByBookingId(
-            @PathVariable String bookingId
+            @PathVariable String bookingId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return ResponseEntity.ok(
-                baggageService.getBaggageByBookingId(bookingId)
-        );
+        /*
+        * First validate booking access through Booking Service.
+        * The verified token is forwarded so:
+        * - STAFF may access any valid booking.
+        * - PASSENGER may access only their own booking.
+        */
+        List<Baggage> baggageList =
+                baggageService.getBaggageByBookingId(
+                        bookingId,
+                        jwt.getTokenValue()
+                );
+
+        if (isStaff(jwt)) {
+            return ResponseEntity.ok(baggageList);
+        }
+
+        /*
+        * Defence-in-depth:
+        * Even after the passenger's booking access is validated,
+        * do not expose legacy baggage items that do not contain a trusted userId.
+        */
+        boolean ownsAllBaggage = baggageList.stream()
+                .allMatch(baggage ->
+                        baggage.getUserId() != null
+                                && jwt.getSubject().equals(baggage.getUserId())
+                );
+
+        if (ownsAllBaggage) {
+            return ResponseEntity.ok(baggageList);
+        }
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     @GetMapping("/{baggageId}")
     public ResponseEntity<Baggage> getBaggageById(
-            @PathVariable String baggageId
+            @PathVariable String baggageId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
         return baggageService.getBaggageById(baggageId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(baggage -> {
+                    boolean isStaff = isStaff(jwt);
+
+                    boolean isBaggageOwner = baggage.getUserId() != null
+                            && jwt.getSubject().equals(baggage.getUserId());
+
+                    if (isStaff || isBaggageOwner) {
+                        return ResponseEntity.ok(baggage);
+                    }
+
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .<Baggage>build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{baggageId}/status")
@@ -55,5 +110,11 @@ public class BaggageController {
                 baggageService.updateBaggageStatus(baggageId, request);
 
         return ResponseEntity.ok(updatedBaggage);
+    }
+
+    private boolean isStaff(Jwt jwt) {
+        List<String> groups = jwt.getClaimAsStringList("cognito:groups");
+
+        return groups != null && groups.contains("STAFF");
     }
 }

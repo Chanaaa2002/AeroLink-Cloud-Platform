@@ -6,7 +6,9 @@ import com.aerolink.baggageservice.dto.CreateBaggageRequest;
 import com.aerolink.baggageservice.dto.UpdateBaggageStatusRequest;
 import com.aerolink.baggageservice.model.Baggage;
 import com.aerolink.baggageservice.repository.BaggageRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +32,10 @@ public class BaggageService {
     private final BaggageRepository baggageRepository;
     private final BookingClient bookingClient;
 
-    public BaggageService(BaggageRepository baggageRepository, BookingClient bookingClient) {
+    public BaggageService(
+            BaggageRepository baggageRepository,
+            BookingClient bookingClient
+    ) {
         this.baggageRepository = baggageRepository;
         this.bookingClient = bookingClient;
     }
@@ -40,23 +45,63 @@ public class BaggageService {
     }
 
     /*
-     * Returns all baggage records connected to one booking.
-     * A booking can contain more than one bag, so this returns a List.
+     * Secure tracking lookup by booking ID.
+     *
+     * The caller's verified Cognito token is forwarded to Booking Service first:
+     * - STAFF may inspect baggage for any valid booking.
+     * - PASSENGER may inspect baggage only for their own booking.
+     * - An empty baggage list is returned only after booking access is validated.
      */
-    public List<Baggage> getBaggageByBookingId(String bookingId) {
+    public List<Baggage> getBaggageByBookingId(
+            String bookingId,
+            String accessToken
+    ) {
         if (bookingId == null || bookingId.isBlank()) {
             throw new IllegalArgumentException("Booking ID is required.");
         }
 
-        return baggageRepository.findByBookingId(bookingId);
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authenticated access token is required."
+            );
+        }
+
+        BookingResponse booking = bookingClient.getBookingById(
+                        bookingId,
+                        accessToken
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found."
+                ));
+
+        return baggageRepository.findByBookingId(booking.getBookingId());
     }
 
-    public Baggage createBaggage(CreateBaggageRequest request) {
+    /*
+     * STAFF-only baggage creation flow.
+     * Baggage Service forwards the verified STAFF token to Booking Service
+     * so it can confirm that the booking is paid and retrieve its trusted owner.
+     */
+    public Baggage createBaggage(
+            CreateBaggageRequest request,
+            String staffAccessToken
+    ) {
+        if (staffAccessToken == null || staffAccessToken.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Authenticated staff token is required."
+            );
+        }
+
         if (request.getBookingId() == null || request.getBookingId().isBlank()) {
             throw new IllegalArgumentException("Booking ID is required.");
         }
 
-        BookingResponse booking = bookingClient.getBookingById(request.getBookingId())
+        BookingResponse booking = bookingClient.getBookingById(
+                        request.getBookingId(),
+                        staffAccessToken
+                )
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Booking not found: " + request.getBookingId()
                 ));
@@ -65,6 +110,16 @@ public class BaggageService {
                 || !"PAID".equals(booking.getPaymentStatus())) {
             throw new IllegalArgumentException(
                     "Baggage can only be created for a confirmed and paid booking."
+            );
+        }
+
+        /*
+         * New secure baggage records must be connected to a trusted
+         * Cognito passenger owner.
+         */
+        if (booking.getUserId() == null || booking.getUserId().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Booking does not contain a verified passenger owner."
             );
         }
 
@@ -82,6 +137,7 @@ public class BaggageService {
         Baggage baggage = new Baggage();
         baggage.setBaggageId("BAG-" + UUID.randomUUID());
         baggage.setBookingId(booking.getBookingId());
+        baggage.setUserId(booking.getUserId());
         baggage.setTagNumber("TAG-AERO-" + shortTag);
         baggage.setStatus("CHECKED_IN");
         baggage.setCurrentLocation(location);

@@ -100,11 +100,23 @@ public class BaggageRepository {
         item.put("currentLocation", AttributeValue.builder().s(baggage.getCurrentLocation()).build());
         item.put("lastUpdated", AttributeValue.builder().s(baggage.getLastUpdated()).build());
 
+        /*
+         * New secure baggage records store the Cognito-linked passenger owner.
+         * Older baggage records may not contain this attribute.
+         */
+        if (baggage.getUserId() != null && !baggage.getUserId().isBlank()) {
+            item.put("userId", AttributeValue.builder().s(baggage.getUserId()).build());
+        }
+
         return item;
     }
 
     private Baggage fromItem(Map<String, AttributeValue> item) {
-        return new Baggage(
+        String userId = item.containsKey("userId")
+                ? item.get("userId").s()
+                : null;
+
+        Baggage baggage = new Baggage(
                 item.get("baggageId").s(),
                 item.get("bookingId").s(),
                 item.get("tagNumber").s(),
@@ -112,5 +124,9 @@ public class BaggageRepository {
                 item.get("currentLocation").s(),
                 item.get("lastUpdated").s()
         );
+
+        baggage.setUserId(userId);
+
+        return baggage;
     }
 }
