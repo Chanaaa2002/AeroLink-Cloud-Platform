@@ -2,7 +2,7 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "BaggageTableAccess",
+      "Sid": "BaggageTableAndIndexAccess",
       "Effect": "Allow",
       "Action": [
         "dynamodb:DescribeTable",
@@ -14,7 +14,8 @@
         "dynamodb:Query"
       ],
       "Resource": [
-        "arn:aws:dynamodb:us-east-1:668855907287:table/BaggageTable"
+        "arn:aws:dynamodb:us-east-1:668855907287:table/BaggageTable",
+        "arn:aws:dynamodb:us-east-1:668855907287:table/BaggageTable/index/*"
       ]
     },
     {

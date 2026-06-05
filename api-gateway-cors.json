@@ -1,6 +1,7 @@
 {
   "AllowOrigins": [
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://main.d1lmcgnio47hxd.amplifyapp.com"
   ],
   "AllowMethods": [
     "GET",

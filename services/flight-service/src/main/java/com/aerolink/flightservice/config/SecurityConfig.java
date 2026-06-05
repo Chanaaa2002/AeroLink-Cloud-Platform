@@ -68,6 +68,8 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/flights", "/flights/**").permitAll()
                         // Keep health and Swagger available while testing locally.
                         .requestMatchers(
                                 "/health/**",
@@ -126,3 +128,4 @@ public class SecurityConfig {
         return authenticationConverter;
     }
 }
+

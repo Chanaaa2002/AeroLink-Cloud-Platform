@@ -7,14 +7,14 @@ import {
 } from '../services/apiClient';
 import './StaffBaggageOperations.css';
 
-const statusOptions = [
-  'CHECKED_IN',
-  'LOADED',
-  'IN_TRANSIT',
-  'ARRIVED',
-  'DELAYED',
-  'DELIVERED',
-];
+const baggageStatusTransitions = {
+  CHECKED_IN: ['LOADED', 'DELAYED'],
+  LOADED: ['IN_TRANSIT', 'DELAYED'],
+  IN_TRANSIT: ['ARRIVED', 'DELAYED'],
+  ARRIVED: ['COLLECTED'],
+  DELAYED: ['LOADED', 'IN_TRANSIT', 'ARRIVED'],
+  COLLECTED: [],
+};
 
 const locationOptions = [
   'Check-in Counter',
@@ -33,13 +33,17 @@ const locationOptions = [
   'Delivered to Passenger',
 ];
 
+function formatStatus(status) {
+  return status ? status.replaceAll('_', ' ') : 'UNKNOWN';
+}
+
 function StaffBaggageOperations({ onBack }) {
   const [bookings, setBookings] = useState([]);
   const [selectedBookingId, setSelectedBookingId] = useState('');
   const [baggageItems, setBaggageItems] = useState([]);
   const [currentLocation, setCurrentLocation] = useState('Check-in Counter');
   const [updateLocation, setUpdateLocation] = useState('Transfer Handling Area');
-  const [updateStatus, setUpdateStatus] = useState('IN_TRANSIT');
+  const [updateStatus, setUpdateStatus] = useState('');
   const [selectedBaggageId, setSelectedBaggageId] = useState('');
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -51,6 +55,19 @@ function StaffBaggageOperations({ onBack }) {
       booking.bookingStatus === 'CONFIRMED' ||
       booking.paymentStatus === 'PAID'
   );
+
+  const selectedBaggage = baggageItems.find(
+    (item) => item.baggageId === selectedBaggageId
+  );
+
+  const currentBaggageStatus = (
+    selectedBaggage?.status ||
+    selectedBaggage?.baggageStatus ||
+    ''
+  ).toUpperCase();
+
+  const allowedNextStatuses =
+    baggageStatusTransitions[currentBaggageStatus] || [];
 
   async function loadBookings() {
     setLoading(true);
@@ -139,6 +156,11 @@ function StaffBaggageOperations({ onBack }) {
       return;
     }
 
+    if (!updateStatus) {
+      setErrorMessage('No valid next status is available for this baggage record.');
+      return;
+    }
+
     setWorking(true);
     setErrorMessage('');
     setMessage('');
@@ -165,6 +187,18 @@ function StaffBaggageOperations({ onBack }) {
   useEffect(() => {
     loadBookings();
   }, []);
+
+  useEffect(() => {
+    if (allowedNextStatuses.length > 0) {
+      setUpdateStatus((previousStatus) =>
+        allowedNextStatuses.includes(previousStatus)
+          ? previousStatus
+          : allowedNextStatuses[0]
+      );
+    } else {
+      setUpdateStatus('');
+    }
+  }, [selectedBaggageId, currentBaggageStatus]);
 
   return (
     <section className="staff-baggage-view">
@@ -256,23 +290,34 @@ function StaffBaggageOperations({ onBack }) {
 
                 {baggageItems.map((item) => (
                   <option value={item.baggageId} key={item.baggageId}>
-                    {item.tagNumber || item.baggageId} · {item.status || item.baggageStatus}
+                    {item.tagNumber || item.baggageId} · {formatStatus(item.status || item.baggageStatus)}
                   </option>
                 ))}
               </select>
             </label>
+
+            {selectedBaggage && (
+              <p className="staff-baggage-helper">
+                Current status: <strong>{formatStatus(currentBaggageStatus)}</strong>
+              </p>
+            )}
 
             <label>
               New status
               <select
                 value={updateStatus}
                 onChange={(event) => setUpdateStatus(event.target.value)}
+                disabled={!selectedBaggageId || allowedNextStatuses.length === 0}
               >
-                {statusOptions.map((status) => (
-                  <option value={status} key={status}>
-                    {status}
-                  </option>
-                ))}
+                {allowedNextStatuses.length === 0 ? (
+                  <option value="">No further movement available</option>
+                ) : (
+                  allowedNextStatuses.map((status) => (
+                    <option value={status} key={status}>
+                      {formatStatus(status)}
+                    </option>
+                  ))
+                )}
               </select>
             </label>
 
@@ -290,7 +335,10 @@ function StaffBaggageOperations({ onBack }) {
               </select>
             </label>
 
-            <button type="submit" disabled={working || !selectedBaggageId}>
+            <button
+              type="submit"
+              disabled={working || !selectedBaggageId || allowedNextStatuses.length === 0}
+            >
               {working ? 'Updating...' : 'Update baggage status'}
             </button>
           </form>
@@ -318,7 +366,7 @@ function StaffBaggageOperations({ onBack }) {
 
               <div>
                 <small>Status</small>
-                <strong>{item.status || item.baggageStatus}</strong>
+                <strong>{formatStatus(item.status || item.baggageStatus)}</strong>
               </div>
 
               <div>

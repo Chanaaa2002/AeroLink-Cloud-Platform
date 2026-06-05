@@ -1,4 +1,4 @@
-package com.aerolink.bookingservice.config;
+package com.aerolink.baggageservice.config;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -66,7 +66,6 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/health/**",
                                 "/swagger-ui/**",
@@ -75,37 +74,30 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
-                        // Passengers can create their own booking.
-                        .requestMatchers(HttpMethod.POST, "/bookings")
-                        .hasRole("PASSENGER")
-
-                        // Only staff can view the complete booking list.
-                        .requestMatchers(HttpMethod.GET, "/bookings")
+                        /*
+                         * Airport/staff operation:
+                         * baggage records are created only for confirmed and paid bookings.
+                         */
+                        .requestMatchers(HttpMethod.POST, "/baggage")
                         .hasRole("STAFF")
 
-                        // Passengers may view only their own bookings using their JWT identity.
-                        .requestMatchers(HttpMethod.GET, "/bookings/me")
-                        .hasRole("PASSENGER")
-
                         /*
-                        * Backend-only endpoint used by Payment Service before payment creation.
-                        * The controller verifies X-Internal-Service-Key.
+                         * Airport/staff operation:
+                         * passengers must never update baggage journey status.
+                         */
+                        .requestMatchers(HttpMethod.PUT, "/baggage/*/status")
+                        .hasRole("STAFF")
+                        /*
+                        * Passengers may reach baggage tracking only so the controller
+                        * can check whether the baggage belongs to them.
+                        * Staff may view baggage for operational work.
                         */
-                        .requestMatchers(HttpMethod.GET, "/bookings/*/internal-payment-view")
-                        .permitAll()
-
-                        // Passengers may reach individual bookings, but ownership is checked in the controller.
-                        // Staff may view any individual booking.
-                        .requestMatchers(HttpMethod.GET, "/bookings/**")
+                        .requestMatchers(HttpMethod.GET, "/baggage/booking/*")
                         .hasAnyRole("PASSENGER", "STAFF")
 
-                        /*
-                        * This endpoint is called by Payment Service after Stripe webhook verification.
-                        * It does not require a Cognito user token, because the controller checks
-                        * the private X-Internal-Service-Key header instead.
-                        */
-                        .requestMatchers(HttpMethod.PUT, "/bookings/*/payment-success")
-                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/baggage/*")
+                        .hasAnyRole("PASSENGER", "STAFF")
+
 
                         .anyRequest().denyAll()
                 )

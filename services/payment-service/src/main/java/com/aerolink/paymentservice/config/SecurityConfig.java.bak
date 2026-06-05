@@ -1,4 +1,4 @@
-package com.aerolink.bookingservice.config;
+package com.aerolink.paymentservice.config;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -66,7 +66,6 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/health/**",
                                 "/swagger-ui/**",
@@ -75,37 +74,49 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
-                        // Passengers can create their own booking.
-                        .requestMatchers(HttpMethod.POST, "/bookings")
-                        .hasRole("PASSENGER")
+                        /*
+                         * Stripe calls this endpoint directly after payment.
+                         * StripeWebhookController verifies the Stripe-Signature header.
+                         */
+                        .requestMatchers(HttpMethod.POST, "/payments/webhook")
+                        .permitAll()
 
-                        // Only staff can view the complete booking list.
-                        .requestMatchers(HttpMethod.GET, "/bookings")
+                        /*
+                         * Stripe redirects the browser to these endpoints.
+                         * These pages do not confirm payment; the webhook does that.
+                         */
+                        .requestMatchers(HttpMethod.GET, "/payments/checkout/success")
+                        .permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/payments/checkout/cancel")
+                        .permitAll()
+
+                        /*
+                         * Only staff can view the full payment list.
+                         */
+                        .requestMatchers(HttpMethod.GET, "/payments")
                         .hasRole("STAFF")
 
-                        // Passengers may view only their own bookings using their JWT identity.
-                        .requestMatchers(HttpMethod.GET, "/bookings/me")
+                        /*
+                         * A passenger may create a payment.
+                         * PaymentService checks that the booking belongs to the passenger.
+                         */
+                        .requestMatchers(HttpMethod.POST, "/payments")
                         .hasRole("PASSENGER")
 
                         /*
-                        * Backend-only endpoint used by Payment Service before payment creation.
-                        * The controller verifies X-Internal-Service-Key.
-                        */
-                        .requestMatchers(HttpMethod.GET, "/bookings/*/internal-payment-view")
-                        .permitAll()
-
-                        // Passengers may reach individual bookings, but ownership is checked in the controller.
-                        // Staff may view any individual booking.
-                        .requestMatchers(HttpMethod.GET, "/bookings/**")
+                         * Passengers may reach one payment only so PaymentController
+                         * can check whether they own it. Staff may view any payment.
+                         */
+                        .requestMatchers(HttpMethod.GET, "/payments/*")
                         .hasAnyRole("PASSENGER", "STAFF")
 
                         /*
-                        * This endpoint is called by Payment Service after Stripe webhook verification.
-                        * It does not require a Cognito user token, because the controller checks
-                        * the private X-Internal-Service-Key header instead.
-                        */
-                        .requestMatchers(HttpMethod.PUT, "/bookings/*/payment-success")
-                        .permitAll()
+                         * Only passengers may create Stripe Checkout sessions.
+                         * StripeCheckoutService checks that the payment belongs to them.
+                         */
+                        .requestMatchers(HttpMethod.POST, "/payments/*/checkout-session")
+                        .hasRole("PASSENGER")
 
                         .anyRequest().denyAll()
                 )

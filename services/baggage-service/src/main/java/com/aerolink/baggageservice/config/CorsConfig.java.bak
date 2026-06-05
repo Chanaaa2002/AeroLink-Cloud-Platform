@@ -1,4 +1,4 @@
-package com.aerolink.flightservice.config;
+package com.aerolink.baggageservice.config;
 
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -17,11 +17,13 @@ public class CorsConfig {
     public FilterRegistrationBean<CorsFilter> corsFilter() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://main.d1lmcgnio47hxd.amplifyapp.com"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         );
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(
+                List.of("Authorization", "Content-Type", "Accept")
+        );
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 

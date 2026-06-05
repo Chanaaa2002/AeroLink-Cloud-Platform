@@ -66,6 +66,7 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/health/**",
                                 "/swagger-ui/**",
@@ -128,3 +129,4 @@ public class SecurityConfig {
         return authenticationConverter;
     }
 }
+

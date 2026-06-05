@@ -27,7 +27,7 @@
           "value": "us-east-1"
         },
         {
-          "name": "FLIGHT_SERVICE_URL",
+          "name": "SERVICES_FLIGHT_BASE_URL",
           "value": "http://aerolink-alb-1937371221.us-east-1.elb.amazonaws.com"
         }
       ],
