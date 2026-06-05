@@ -1,0 +1,21 @@
+{
+  "AllowOrigins": [
+    "http://localhost:5173"
+  ],
+  "AllowMethods": [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS"
+  ],
+  "AllowHeaders": [
+    "authorization",
+    "content-type",
+    "x-amz-date",
+    "x-api-key",
+    "x-amz-security-token"
+  ],
+  "MaxAge": 3600
+}

@@ -1,0 +1,46 @@
+{
+  "family": "aerolink-flight-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::668855907287:role/aerolink-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::668855907287:role/aerolink-flight-task-role",
+  "containerDefinitions": [
+    {
+      "name": "aerolink-flight-service",
+      "image": "668855907287.dkr.ecr.us-east-1.amazonaws.com/aerolink-flight-service:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "BOOKING_TO_FLIGHT_INTERNAL_KEY",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/booking-to-flight-internal-key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aerolink-flight-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

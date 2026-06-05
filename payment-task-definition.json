@@ -1,0 +1,74 @@
+{
+  "family": "aerolink-payment-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::668855907287:role/aerolink-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::668855907287:role/aerolink-payment-task-role",
+  "containerDefinitions": [
+    {
+      "name": "aerolink-payment-service",
+      "image": "668855907287.dkr.ecr.us-east-1.amazonaws.com/aerolink-payment-service:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8082,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "SERVICES_BOOKING_BASE_URL",
+          "value": "http://aerolink-alb-1937371221.us-east-1.elb.amazonaws.com"
+        },
+        {
+          "name": "STRIPE_SUCCESS_URL",
+          "value": "http://localhost:5173/passenger/dashboard?payment=success"
+        },
+        {
+          "name": "STRIPE_CANCEL_URL",
+          "value": "http://localhost:5173/passenger/dashboard?payment=cancel"
+        },
+        {
+          "name": "AWS_EVENTBRIDGE_BUS_NAME",
+          "value": "AeroLinkEventBus"
+        },
+        {
+          "name": "AWS_EVENTBRIDGE_REGION",
+          "value": "us-east-1"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "STRIPE_SECRET_KEY",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/stripe-secret-key"
+        },
+        {
+          "name": "STRIPE_WEBHOOK_SECRET",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/stripe-webhook-secret"
+        },
+        {
+          "name": "PAYMENT_TO_BOOKING_INTERNAL_KEY",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/payment-to-booking-internal-key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aerolink-payment-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

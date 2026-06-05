@@ -1,0 +1,40 @@
+{
+  "family": "aerolink-notification-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::668855907287:role/aerolink-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::668855907287:role/aerolink-notification-task-role",
+  "containerDefinitions": [
+    {
+      "name": "aerolink-notification-service",
+      "image": "668855907287.dkr.ecr.us-east-1.amazonaws.com/aerolink-notification-service:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8084,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aerolink-notification-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

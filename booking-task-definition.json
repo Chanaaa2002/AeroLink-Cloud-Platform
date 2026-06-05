@@ -1,0 +1,54 @@
+{
+  "family": "aerolink-booking-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::668855907287:role/aerolink-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::668855907287:role/aerolink-booking-task-role",
+  "containerDefinitions": [
+    {
+      "name": "aerolink-booking-service",
+      "image": "668855907287.dkr.ecr.us-east-1.amazonaws.com/aerolink-booking-service:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8081,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "FLIGHT_SERVICE_URL",
+          "value": "http://aerolink-alb-1937371221.us-east-1.elb.amazonaws.com"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "BOOKING_TO_FLIGHT_INTERNAL_KEY",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/booking-to-flight-internal-key"
+        },
+        {
+          "name": "PAYMENT_TO_BOOKING_INTERNAL_KEY",
+          "valueFrom": "arn:aws:ssm:us-east-1:668855907287:parameter/aerolink/prod/payment-to-booking-internal-key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aerolink-booking-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
