@@ -49,6 +49,30 @@ public class BookingRepository {
                 .toList();
     }
 
+    public List<Booking> findByUserIdNewestFirst(String userId) {
+        return dynamoDbClient.scan(
+                        ScanRequest.builder()
+                                .tableName(tableName)
+                                .filterExpression("#userId = :userId")
+                                .expressionAttributeNames(
+                                        Map.of("#userId", "userId")
+                                )
+                                .expressionAttributeValues(
+                                        Map.of(
+                                                ":userId",
+                                                AttributeValue.builder().s(userId).build()
+                                        )
+                                )
+                                .build()
+                ).items()
+                .stream()
+                .map(this::fromItem)
+                .sorted((first, second) ->
+                        second.getCreatedAt().compareTo(first.getCreatedAt())
+                )
+                .toList();
+    }
+
     public Optional<Booking> findById(String bookingId) {
         Map<String, AttributeValue> key = Map.of(
                 "bookingId", AttributeValue.builder().s(bookingId).build()

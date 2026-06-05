@@ -82,6 +82,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/bookings")
                         .hasRole("STAFF")
 
+                        // Passengers may view only their own bookings using their JWT identity.
+                        .requestMatchers(HttpMethod.GET, "/bookings/me")
+                        .hasRole("PASSENGER")
+
                         /*
                         * Backend-only endpoint used by Payment Service before payment creation.
                         * The controller verifies X-Internal-Service-Key.

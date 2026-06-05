@@ -1,0 +1,352 @@
+.bookings-view {
+  display: grid;
+  gap: 19px;
+  animation: bookingsEnter 0.35s ease;
+}
+
+.bookings-heading {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 32px;
+  border-radius: 24px;
+  border: 1px solid var(--dash-border);
+  background:
+    radial-gradient(circle at 91% 12%, rgba(69, 215, 255, 0.12), transparent 31%),
+    linear-gradient(125deg, rgba(10, 28, 52, 0.98), rgba(7, 21, 41, 0.92));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 26px;
+}
+
+.bookings-heading::after {
+  content: '▣';
+  position: absolute;
+  right: 40px;
+  bottom: -28px;
+  color: rgba(69, 215, 255, 0.05);
+  font-size: 118px;
+}
+
+.bookings-heading > div,
+.bookings-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.bookings-heading h1 {
+  margin: 0 0 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(29px, 3vw, 37px);
+  letter-spacing: -0.055em;
+}
+
+.bookings-heading p:not(.dash-eyebrow) {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.bookings-actions {
+  display: flex;
+  gap: 11px;
+}
+
+.bookings-back-button,
+.bookings-refresh-button {
+  min-height: 46px;
+  padding: 0 19px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bookings-back-button {
+  border: 1px solid var(--dash-border);
+  color: #d9e6f5;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bookings-refresh-button {
+  border: 0;
+  color: #06101d;
+  background: linear-gradient(110deg, var(--dash-cyan), #89e8ff);
+}
+
+.bookings-refresh-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.bookings-list {
+  display: grid;
+  gap: 15px;
+}
+
+.booking-card {
+  position: relative;
+  overflow: hidden;
+  padding: 23px;
+  border-radius: 21px;
+  border: 1px solid var(--dash-border);
+  background:
+    radial-gradient(circle at 94% 9%, rgba(69, 215, 255, 0.06), transparent 29%),
+    linear-gradient(125deg, rgba(10, 28, 52, 0.98), rgba(7, 21, 41, 0.94));
+}
+
+.booking-card::before {
+  position: absolute;
+  content: '';
+  inset: 20px auto 20px 0;
+  width: 3px;
+  border-radius: 8px;
+  background: var(--dash-cyan);
+}
+
+.booking-card-top {
+  margin-bottom: 21px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.booking-flight-label {
+  margin: 0 0 6px;
+  color: var(--dash-muted);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.booking-card-top h2 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 21px;
+}
+
+.booking-status {
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.booking-status.pending {
+  color: #ffca65;
+  background: rgba(255, 202, 101, 0.11);
+}
+
+.booking-status.confirmed {
+  color: var(--dash-green);
+  background: rgba(76, 224, 173, 0.12);
+}
+
+.booking-status.default {
+  color: var(--dash-cyan);
+  background: rgba(69, 215, 255, 0.11);
+}
+
+.booking-passenger-row {
+  padding: 17px 0;
+  border-top: 1px solid var(--dash-border);
+  border-bottom: 1px solid var(--dash-border);
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 1fr;
+  gap: 15px;
+}
+
+.booking-passenger-row span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--dash-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.booking-passenger-row strong {
+  color: #f5f8ff;
+  font-size: 15px;
+}
+
+.booking-passenger-row .booking-total {
+  color: var(--dash-cyan);
+  font-size: 18px;
+}
+
+.booking-card-footer {
+  margin-top: 19px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.booking-card-footer > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.booking-created,
+.payment-status {
+  padding: 8px 11px;
+  border-radius: 9px;
+  color: #bdcede;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.proceed-payment-button {
+  min-height: 45px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  color: #06101d;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(110deg, var(--dash-cyan), #86e7ff);
+}
+
+.paid-badge {
+  padding: 11px 15px;
+  border-radius: 11px;
+  color: var(--dash-green);
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(76, 224, 173, 0.11);
+}
+
+.bookings-state-card {
+  min-height: 300px;
+  padding: 38px 28px;
+  border-radius: 22px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-panel);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 13px;
+  text-align: center;
+}
+
+.bookings-state-card h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.bookings-state-card p {
+  margin: 0;
+  color: var(--dash-muted);
+}
+
+.bookings-state-card button {
+  min-height: 44px;
+  margin-top: 9px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 11px;
+  color: #06101d;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--dash-cyan);
+}
+
+.bookings-loader {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  border: 3px solid rgba(69, 215, 255, 0.17);
+  border-top-color: var(--dash-cyan);
+  animation: bookingsSpin 0.8s linear infinite;
+}
+
+.bookings-state-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: var(--dash-cyan);
+  font-size: 22px;
+  background: rgba(69, 215, 255, 0.11);
+}
+
+@keyframes bookingsSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bookingsEnter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .bookings-heading {
+    padding: 23px 18px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bookings-actions {
+    width: 100%;
+  }
+
+  .bookings-back-button,
+  .bookings-refresh-button {
+    flex: 1;
+  }
+
+  .booking-card {
+    padding: 18px 16px;
+  }
+
+  .booking-passenger-row {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payment-error-panel {
+  padding: 15px 17px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 120, 120, 0.24);
+  color: #ffc7c7;
+  background: rgba(230, 72, 72, 0.11);
+  display: grid;
+  gap: 5px;
+}
+
+.payment-error-panel strong {
+  color: #ffd4d4;
+}
+
+.payment-error-panel span {
+  color: #ffbaba;
+  font-size: 13px;
+}
+
+.proceed-payment-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+}

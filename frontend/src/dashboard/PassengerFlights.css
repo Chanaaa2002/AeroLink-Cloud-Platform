@@ -1,0 +1,566 @@
+/* ==========================================================
+AEROLINK PASSENGER FLIGHTS VIEW
+========================================================== */
+
+.flights-view {
+display: grid;
+gap: 20px;
+animation: flightsViewEnter 0.38s ease;
+}
+
+.flights-heading {
+position: relative;
+overflow: hidden;
+padding: 30px 32px;
+border: 1px solid var(--dash-border);
+border-radius: 24px;
+background:
+radial-gradient(circle at 92% 12%, rgba(69, 215, 255, 0.13), transparent 30%),
+linear-gradient(125deg, rgba(10, 28, 52, 0.98), rgba(7, 21, 41, 0.92));
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 26px;
+}
+
+.flights-heading::after {
+content: '✈';
+position: absolute;
+right: 32px;
+bottom: -29px;
+color: rgba(69, 215, 255, 0.05);
+font-size: 126px;
+transform: rotate(-16deg);
+pointer-events: none;
+}
+
+.flights-heading > div,
+.flights-actions {
+position: relative;
+z-index: 1;
+}
+
+.flights-heading h1 {
+margin: 0 0 10px;
+font-family: 'Sora', sans-serif;
+font-size: clamp(29px, 3vw, 37px);
+letter-spacing: -0.055em;
+}
+
+.flights-heading p:not(.dash-eyebrow) {
+max-width: 570px;
+margin: 0;
+color: var(--dash-muted);
+font-size: 14px;
+line-height: 1.65;
+}
+
+.flights-actions {
+flex-shrink: 0;
+display: flex;
+gap: 11px;
+}
+
+.flights-back-button,
+.flights-refresh-button {
+min-height: 46px;
+padding: 0 19px;
+border-radius: 12px;
+font-family: inherit;
+font-size: 14px;
+font-weight: 700;
+cursor: pointer;
+transition:
+transform 0.2s ease,
+border-color 0.2s ease,
+box-shadow 0.2s ease;
+}
+
+.flights-back-button {
+color: #d9e6f5;
+border: 1px solid var(--dash-border);
+background: rgba(255, 255, 255, 0.04);
+}
+
+.flights-refresh-button {
+color: #06101d;
+border: 0;
+background: linear-gradient(110deg, var(--dash-cyan), #89e8ff);
+box-shadow: 0 13px 28px rgba(69, 215, 255, 0.16);
+}
+
+.flights-back-button:hover,
+.flights-refresh-button:hover:not(:disabled) {
+transform: translateY(-1px);
+}
+
+.flights-back-button:hover {
+border-color: rgba(69, 215, 255, 0.34);
+}
+
+.flights-refresh-button:disabled {
+opacity: 0.7;
+cursor: wait;
+}
+
+.flights-grid {
+display: grid;
+grid-template-columns: repeat(2, minmax(360px, 1fr));
+gap: 17px;
+}
+
+.flight-result-card {
+position: relative;
+overflow: hidden;
+padding: 23px;
+border: 1px solid var(--dash-border);
+border-radius: 22px;
+background:
+radial-gradient(circle at 93% 12%, rgba(69, 215, 255, 0.065), transparent 28%),
+linear-gradient(130deg, rgba(10, 28, 52, 0.98), rgba(7, 21, 40, 0.94));
+transition:
+transform 0.23s ease,
+border-color 0.23s ease,
+box-shadow 0.23s ease;
+}
+
+.flight-result-card::before {
+position: absolute;
+content: '';
+top: 19px;
+bottom: 19px;
+left: 0;
+width: 3px;
+border-radius: 10px;
+background: linear-gradient(180deg, var(--dash-cyan), var(--dash-blue));
+}
+
+.flight-result-card:hover {
+transform: translateY(-3px);
+border-color: rgba(69, 215, 255, 0.3);
+box-shadow: 0 22px 48px rgba(0, 0, 0, 0.2);
+}
+
+.flight-result-top {
+margin-bottom: 25px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 14px;
+}
+
+.flight-result-top > div {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.flight-number {
+color: #f5f8ff;
+font-family: 'Sora', sans-serif;
+font-size: 20px;
+font-weight: 700;
+}
+
+.flight-status {
+padding: 6px 10px;
+border-radius: 999px;
+color: var(--dash-green);
+background: rgba(76, 224, 173, 0.11);
+font-size: 10px;
+font-weight: 800;
+letter-spacing: 0.1em;
+}
+
+.flight-price {
+color: var(--dash-cyan);
+font-family: 'Sora', sans-serif;
+font-size: 21px;
+font-weight: 700;
+}
+
+.flight-route {
+display: grid;
+grid-template-columns: minmax(90px, 1fr) 118px minmax(90px, 1fr);
+align-items: center;
+gap: 10px;
+margin-bottom: 25px;
+}
+
+.flight-route small {
+display: block;
+margin-bottom: 7px;
+color: var(--dash-muted);
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+}
+
+.flight-route strong {
+display: block;
+color: #f5f8ff;
+font-size: 20px;
+font-weight: 700;
+}
+
+.flight-route-destination {
+text-align: right;
+}
+
+.flight-route-line {
+position: relative;
+border-top: 2px dashed rgba(69, 215, 255, 0.38);
+}
+
+.flight-route-line span {
+position: absolute;
+top: -15px;
+left: -3px;
+padding: 0 6px;
+color: var(--dash-cyan);
+font-size: 21px;
+transform: rotate(36deg);
+background: #0a1930;
+animation: flightJourneyPlane 3.1s ease-in-out infinite;
+}
+
+.flight-times {
+margin-bottom: 18px;
+padding: 16px 0;
+border-top: 1px solid var(--dash-border);
+border-bottom: 1px solid var(--dash-border);
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 16px;
+}
+
+.flight-times span {
+display: block;
+margin-bottom: 8px;
+color: var(--dash-muted);
+font-size: 11px;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+}
+
+.flight-times strong {
+display: block;
+color: #dbe7f6;
+font-size: 13px;
+font-weight: 600;
+line-height: 1.55;
+}
+
+.flight-result-footer {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 15px;
+}
+
+.flight-result-footer span {
+color: var(--dash-muted);
+font-size: 13px;
+}
+
+.flight-result-footer span strong {
+color: #f5f8ff;
+font-size: 16px;
+}
+
+.flight-result-footer button {
+min-height: 45px;
+padding: 0 18px;
+border: 0;
+border-radius: 12px;
+color: #06101d;
+font-family: inherit;
+font-size: 13px;
+font-weight: 800;
+cursor: pointer;
+background: linear-gradient(110deg, var(--dash-cyan), #86e7ff);
+box-shadow: 0 13px 27px rgba(69, 215, 255, 0.14);
+transition:
+transform 0.2s ease,
+box-shadow 0.2s ease;
+}
+
+.flight-result-footer button:hover {
+transform: translateY(-1px);
+box-shadow: 0 17px 30px rgba(69, 215, 255, 0.21);
+}
+
+.flights-state-card {
+min-height: 310px;
+padding: 38px 28px;
+border: 1px solid var(--dash-border);
+border-radius: 22px;
+background: var(--dash-panel);
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 13px;
+text-align: center;
+}
+
+.flights-state-card h2 {
+margin: 0;
+color: #f5f8ff;
+font-size: 21px;
+}
+
+.flights-state-card p {
+margin: 0;
+color: var(--dash-muted);
+}
+
+.flights-state-card button {
+min-height: 44px;
+margin-top: 9px;
+padding: 0 20px;
+border: 0;
+border-radius: 11px;
+color: #06101d;
+font-weight: 700;
+cursor: pointer;
+background: var(--dash-cyan);
+}
+
+.flights-loader {
+width: 44px;
+height: 44px;
+border-radius: 50%;
+border: 3px solid rgba(69, 215, 255, 0.17);
+border-top-color: var(--dash-cyan);
+animation: flightsSpin 0.8s linear infinite;
+}
+
+.flights-state-icon {
+width: 51px;
+height: 51px;
+border-radius: 15px;
+display: grid;
+place-items: center;
+color: var(--dash-cyan);
+font-size: 22px;
+background: rgba(69, 215, 255, 0.11);
+}
+
+@keyframes flightJourneyPlane {
+0% {
+left: -3px;
+}
+
+50% {
+left: calc(100% - 25px);
+}
+
+100% {
+left: -3px;
+}
+}
+
+@keyframes flightsSpin {
+to {
+transform: rotate(360deg);
+}
+}
+
+@keyframes flightsViewEnter {
+from {
+opacity: 0;
+transform: translateY(7px);
+}
+
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+@media (max-width: 1120px) {
+.flights-grid {
+grid-template-columns: 1fr;
+}
+}
+
+@media (max-width: 720px) {
+.flights-heading {
+padding: 23px 18px;
+flex-direction: column;
+align-items: stretch;
+}
+
+.flights-actions {
+width: 100%;
+}
+
+.flights-back-button,
+.flights-refresh-button {
+flex: 1;
+}
+
+.flight-result-card {
+padding: 18px 16px;
+}
+
+.flight-result-top {
+flex-direction: column;
+align-items: flex-start;
+gap: 11px;
+}
+
+.flight-route {
+grid-template-columns: minmax(70px, 1fr) 62px minmax(70px, 1fr);
+}
+
+.flight-route strong {
+font-size: 17px;
+}
+
+.flight-times {
+grid-template-columns: 1fr;
+}
+
+.flight-result-footer {
+flex-direction: column;
+align-items: stretch;
+}
+.flight-booking-success {
+  padding: 18px 20px;
+  border: 1px solid rgba(76, 224, 173, 0.24);
+  border-radius: 18px;
+  background: rgba(76, 224, 173, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.flight-booking-success-icon {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--dash-green);
+  font-size: 22px;
+  font-weight: 800;
+  background: rgba(76, 224, 173, 0.13);
+}
+
+.flight-booking-success h2 {
+  margin: 0 0 6px;
+  color: #f5f8ff;
+  font-size: 18px;
+}
+
+.flight-booking-success p:not(.dash-eyebrow) {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 13px;
+}
+
+.flight-booking-success strong {
+  color: var(--dash-green);
+}
+
+@media (max-width: 560px) {
+  .flight-booking-success {
+    align-items: flex-start;
+  }
+}
+
+/* ==========================================================
+   BOOKING CREATED CONFIRMATION PANEL
+   ========================================================== */
+
+.flight-booking-success {
+  position: relative;
+  overflow: hidden;
+  padding: 21px 23px;
+  border-radius: 20px;
+  border: 1px solid rgba(76, 224, 173, 0.28);
+  background:
+    radial-gradient(circle at 94% 10%, rgba(76, 224, 173, 0.12), transparent 30%),
+    linear-gradient(120deg, rgba(10, 40, 48, 0.82), rgba(8, 25, 43, 0.94));
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  animation: bookingSuccessEnter 0.35s ease;
+}
+
+.flight-booking-success::before {
+  position: absolute;
+  content: '';
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--dash-green);
+}
+
+.flight-booking-success-icon {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--dash-green);
+  font-size: 26px;
+  font-weight: 800;
+  background: rgba(76, 224, 173, 0.13);
+}
+
+.flight-booking-success .dash-eyebrow {
+  margin-bottom: 7px;
+  color: var(--dash-green);
+}
+
+.flight-booking-success h2 {
+  margin: 0 0 8px;
+  color: #f5f8ff;
+  font-family: 'Sora', sans-serif;
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+
+.flight-booking-success p:not(.dash-eyebrow) {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.flight-booking-success strong {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--dash-green);
+  font-size: 12px;
+  background: rgba(76, 224, 173, 0.1);
+}
+
+@keyframes bookingSuccessEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .flight-booking-success {
+    padding: 17px 15px;
+    align-items: flex-start;
+  }
+
+  .flight-booking-success h2 {
+    font-size: 17px;
+  }
+}
+}

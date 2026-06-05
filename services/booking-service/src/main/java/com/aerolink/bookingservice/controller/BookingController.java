@@ -41,6 +41,11 @@ public class BookingController {
         return bookingService.getAllBookings();
     }
 
+    @GetMapping("/me")
+    public List<Booking> getMyBookings(@AuthenticationPrincipal Jwt jwt) {
+        return bookingService.getMyBookings(jwt.getSubject());
+    }
+
     @GetMapping("/{bookingId}")
     public ResponseEntity<Booking> getBookingById(
             @PathVariable String bookingId,

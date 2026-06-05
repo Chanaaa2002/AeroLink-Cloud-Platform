@@ -31,6 +31,14 @@ public class BookingService {
         return bookingRepository.findById(bookingId);
     }
 
+    public List<Booking> getMyBookings(String authenticatedUserId) {
+        if (authenticatedUserId == null || authenticatedUserId.isBlank()) {
+            throw new IllegalArgumentException("Authenticated user ID is required.");
+        }
+
+        return bookingRepository.findByUserIdNewestFirst(authenticatedUserId);
+    }
+
     /*
      * Creates a booking for an authenticated passenger.
      * The passenger access token is forwarded only for the read-only

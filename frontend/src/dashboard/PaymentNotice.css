@@ -1,0 +1,146 @@
+.payment-popup-overlay {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  width: min(430px, calc(100vw - 32px));
+  animation: paymentPopupSlideIn 0.35s ease;
+}
+
+.payment-popup-card {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 18px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(76, 224, 173, 0.28);
+  background:
+    radial-gradient(circle at 95% 10%, rgba(76, 224, 173, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(8, 30, 50, 0.98), rgba(6, 17, 31, 0.98));
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  backdrop-filter: blur(18px);
+  display: grid;
+  grid-template-columns: 46px 1fr 34px;
+  gap: 13px;
+  align-items: start;
+}
+
+.payment-popup-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 4px;
+  border-radius: 0 10px 10px 0;
+  background: #4ce0ad;
+}
+
+.payment-popup-card.cancel {
+  border-color: rgba(255, 202, 101, 0.3);
+}
+
+.payment-popup-card.cancel::before {
+  background: #ffca65;
+}
+
+.payment-popup-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #4ce0ad;
+  font-size: 24px;
+  font-weight: 900;
+  background: rgba(76, 224, 173, 0.13);
+}
+
+.payment-popup-card.cancel .payment-popup-icon {
+  color: #ffca65;
+  background: rgba(255, 202, 101, 0.13);
+}
+
+.payment-popup-content strong {
+  display: block;
+  margin: 2px 0 6px;
+  color: #f5f8ff;
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.payment-popup-content p {
+  margin: 0;
+  color: #9eafc7;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.payment-popup-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(157, 190, 232, 0.2);
+  border-radius: 11px;
+  color: #d9e6f5;
+  font-size: 21px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.payment-popup-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes paymentPopupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(22px) translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .payment-popup-overlay {
+    top: 14px;
+    right: 14px;
+    left: 14px;
+    width: auto;
+  }
+
+  .payment-popup-card {
+    grid-template-columns: 42px 1fr 32px;
+    padding: 15px;
+  }
+
+  .payment-popup-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .live-alert-popup {
+  top: 100px;
+}
+
+.live-alert-popup .payment-popup-card {
+  border-color: rgba(69, 215, 255, 0.3);
+  background:
+    radial-gradient(circle at 95% 10%, rgba(69, 215, 255, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(8, 30, 50, 0.98), rgba(6, 17, 31, 0.98));
+}
+
+.live-alert-popup .payment-popup-card::before {
+  background: #45d7ff;
+}
+
+.live-alert-popup .payment-popup-icon {
+  color: #45d7ff;
+  background: rgba(69, 215, 255, 0.13);
+}
+}
