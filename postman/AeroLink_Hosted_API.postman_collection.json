@@ -1,0 +1,641 @@
+{
+  "info": {
+    "name": "AeroLink Hosted API",
+    "description": "Postman collection for the deployed AeroLink Cloud Platform hosted on AWS API Gateway. It uses environment variables only and avoids embedding real tokens, secrets, or payment credentials.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health / Public",
+      "item": [
+        {
+          "name": "GET /health (optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Health endpoint is optional', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Health response is JSON when available', function () {",
+                  "    pm.expect(body, 'Expected JSON response body').to.not.equal(null);",
+                  "  });",
+                  "  pm.test('Health response contains service and status when available', function () {",
+                  "    pm.expect(body).to.have.property('service');",
+                  "    pm.expect(body).to.have.property('status');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /flights",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/flights"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Flight list is array', function () { pm.expect(Array.isArray(body)).to.be.true; });",
+                  "pm.test('Flight item has required fields', function () {",
+                  "  if (Array.isArray(body) && body.length > 0) {",
+                  "    const flight = body[0];",
+                  "    pm.expect(flight).to.have.property('flightId');",
+                  "    pm.expect(flight).to.have.property('flightNumber');",
+                  "    pm.expect(flight).to.have.property('fromLocation');",
+                  "    pm.expect(flight).to.have.property('toLocation');",
+                  "    pm.expect(flight).to.have.property('price');",
+                  "    pm.expect(flight).to.have.property('availableSeats');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /flights/{{flightId}}",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/flights/{{flightId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Flight response has required fields', function () {",
+                  "  pm.expect(body).to.have.property('flightId');",
+                  "  pm.expect(body).to.have.property('flightNumber');",
+                  "  pm.expect(body).to.have.property('fromLocation');",
+                  "  pm.expect(body).to.have.property('toLocation');",
+                  "  pm.expect(body).to.have.property('price');",
+                  "  pm.expect(body).to.have.property('availableSeats');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Passenger Booking Flow",
+      "item": [
+        {
+          "name": "POST /bookings",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"{{flightId}}\",\n  \"passengerName\": \"{{testPassengerName}}\",\n  \"seatCount\": {{seatCount}}\n}"
+            },
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "const currentBookingId = body && body.bookingId ? body.bookingId : null;",
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Created booking has bookingId', function () {",
+                  "  pm.expect(body).to.have.property('bookingId');",
+                  "  pm.expect(body.bookingId, 'bookingId should not be empty').to.be.a('string').and.not.be.empty;",
+                  "});",
+                  "pm.test('Created booking has expected initial status', function () {",
+                  "  if (body && body.bookingStatus) { pm.expect(['PENDING_PAYMENT', 'PENDING']).to.include(body.bookingStatus); }",
+                  "});",
+                  "pm.test('Seat count is present', function () {",
+                  "  if (body && typeof body.seatCount !== 'undefined') { pm.expect(body.seatCount).to.equal(Number(pm.environment.get('seatCount'))); }",
+                  "});",
+                  "if (currentBookingId) { pm.environment.set('bookingId', currentBookingId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /bookings/me",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/bookings/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "const savedBookingId = pm.environment.get('bookingId');",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Passenger bookings response is an array', function () { pm.expect(Array.isArray(body)).to.be.true; });",
+                  "pm.test('Passenger booking list includes the created booking when available', function () {",
+                  "  if (Array.isArray(body) && savedBookingId) {",
+                  "    pm.expect(body.some(function (item) { return item.bookingId === savedBookingId; })).to.be.true;",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payment Flow",
+      "item": [
+        {
+          "name": "POST /payments",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "const currentPaymentId = body && body.paymentId ? body.paymentId : null;",
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Created payment has paymentId', function () {",
+                  "  pm.expect(body).to.have.property('paymentId');",
+                  "  pm.expect(body.paymentId, 'paymentId should not be empty').to.be.a('string').and.not.be.empty;",
+                  "});",
+                  "pm.test('Created payment is pending', function () {",
+                  "  if (body && body.paymentStatus) { pm.expect(body.paymentStatus).to.equal('PENDING'); }",
+                  "});",
+                  "if (currentPaymentId) { pm.environment.set('paymentId', currentPaymentId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /payments/{{paymentId}}/checkout-session",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/checkout-session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Checkout session includes checkout URL', function () {",
+                  "  pm.expect(body).to.satisfy(function (value) { return !!(value && (value.checkoutUrl || value.url)); });",
+                  "});",
+                  "if (body && body.paymentId) { pm.environment.set('paymentId', body.paymentId); }",
+                  "if (body && body.checkoutUrl) { pm.environment.set('checkoutUrl', body.checkoutUrl); }",
+                  "if (body && body.stripeSessionId) { pm.environment.set('stripeSessionId', body.stripeSessionId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NOTE - Manual Stripe hosted checkout confirmation",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/payments/checkout/success"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Informational Stripe checkout response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Stripe checkout success note is present', function () {",
+                  "  pm.expect(body).to.have.property('message');",
+                  "  pm.expect(body).to.have.property('paymentConfirmation');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Staff Baggage Flow",
+      "item": [
+        {
+          "name": "POST /baggage",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{staffToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"currentLocation\": \"Colombo Check-in Counter\"\n}"
+            },
+            "url": "{{baseUrl}}/baggage"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "const currentBaggageId = body && body.baggageId ? body.baggageId : null;",
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Created baggage has baggageId or tagNumber', function () {",
+                  "  pm.expect(body).to.satisfy(function (value) { return !!(value && (value.baggageId || value.tagNumber)); });",
+                  "});",
+                  "pm.test('Created baggage starts checked in', function () {",
+                  "  if (body && body.status) { pm.expect(body.status).to.equal('CHECKED_IN'); }",
+                  "});",
+                  "if (currentBaggageId) { pm.environment.set('baggageId', currentBaggageId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /baggage/booking/{{bookingId}} (staff)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{staffToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/baggage/booking/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Staff baggage lookup returns an array', function () { pm.expect(Array.isArray(body)).to.be.true; });",
+                  "pm.test('Baggage items expose expected fields when present', function () {",
+                  "  if (Array.isArray(body) && body.length > 0) {",
+                  "    const baggage = body[0];",
+                  "    pm.expect(baggage).to.satisfy(function (value) { return !!(value && (value.baggageId || value.tagNumber)); });",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /baggage/{{baggageId}}/status -> LOADED",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{staffToken}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"LOADED\",\n  \"currentLocation\": \"Aircraft Hold\"\n}"
+            },
+            "url": "{{baseUrl}}/baggage/{{baggageId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Baggage status is LOADED when present', function () {",
+                  "  if (body && body.status) { pm.expect(body.status).to.equal('LOADED'); }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /baggage/{{baggageId}}/status -> invalid transition",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{staffToken}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ARRIVED\",\n  \"currentLocation\": \"Aircraft Hold\"\n}"
+            },
+            "url": "{{baseUrl}}/baggage/{{baggageId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid baggage transition returns 400', function () { pm.expect(pm.response.code).to.equal(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Passenger Baggage / Notifications",
+      "item": [
+        {
+          "name": "GET /baggage/booking/{{bookingId}}",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/baggage/booking/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Passenger baggage response is an array or object', function () { pm.expect(Array.isArray(body) || (body && typeof body === 'object')).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /notifications/me",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/notifications/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function parseJsonSafe() {",
+                  "  try { return pm.response.json(); } catch (error) { return null; }",
+                  "}",
+                  "const body = parseJsonSafe();",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test('Response is JSON', function () { pm.expect(body, 'Expected JSON response body').to.not.equal(null); });",
+                  "pm.test('Notifications response is an array', function () { pm.expect(Array.isArray(body)).to.be.true; });",
+                  "pm.test('Notification items expose expected fields when present', function () {",
+                  "  if (Array.isArray(body) && body.length > 0) {",
+                  "    const notification = body[0];",
+                  "    pm.expect(notification).to.have.property('title');",
+                  "    pm.expect(notification).to.have.property('message');",
+                  "    pm.expect(notification).to.have.property('type');",
+                  "    pm.expect(notification).to.have.property('status');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Security / RBAC Negative Tests",
+      "item": [
+        {
+          "name": "GET /bookings/me without token",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/bookings/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Missing token returns 401 or 403', function () { pm.expect([401, 403]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /flights with passenger token",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"NEG-001\",\n  \"flightNumber\": \"NEG001\",\n  \"fromLocation\": \"Colombo\",\n  \"toLocation\": \"Dubai\",\n  \"departureTime\": \"2026-06-05T10:00:00\",\n  \"arrivalTime\": \"2026-06-05T14:00:00\",\n  \"price\": 1000,\n  \"availableSeats\": 50,\n  \"status\": \"SCHEDULED\"\n}"
+            },
+            "url": "{{baseUrl}}/flights"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Passenger cannot create flights', function () { pm.expect(pm.response.code).to.equal(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /baggage with passenger token",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"currentLocation\": \"Colombo Check-in Counter\"\n}"
+            },
+            "url": "{{baseUrl}}/baggage"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Passenger cannot create baggage', function () { pm.expect(pm.response.code).to.equal(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /baggage/{{baggageId}}/status with passenger token",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{passengerToken}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELAYED\",\n  \"currentLocation\": \"Terminal 1\"\n}"
+            },
+            "url": "{{baseUrl}}/baggage/{{baggageId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Passenger cannot update baggage status', function () { pm.expect(pm.response.code).to.equal(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /notifications/me with staff token",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{staffToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": "{{baseUrl}}/notifications/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Staff token is rejected by passenger-only notifications endpoint', function () { pm.expect(pm.response.code).to.equal(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

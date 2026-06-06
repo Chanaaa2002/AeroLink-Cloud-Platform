@@ -1,0 +1,4 @@
+__pycache__/
+aerolink-load-*.csv
+locust.log
+venv/
